@@ -1,0 +1,78 @@
+variable btime equal (step*0.01)
+
+units lj
+atom_style full
+boundary p p p
+neighbor 1.1 bin
+neigh_modify every 1 delay 1 check yes
+comm_modify cutoff 10.0
+
+read_data chromosome_1.data
+
+fix 1 all nve
+fix 2 all langevin 1.0 1.0 1.0 12345
+
+timestep 0.01
+
+comm_style tiled
+fix bal all balance 100000 1.1 rcb
+
+compute gyr all gyration
+thermo 100000
+thermo_style custom v_btime temp epair vol c_gyr
+
+bond_style hybrid fene harmonic
+
+timestep 0.01
+
+bond_coeff 1 fene 30.0 1.5 1.0 1.0
+bond_coeff 2 harmonic 100.0 1.0
+special_bonds fene
+
+pair_style lj/cut 1.12246152962189
+pair_modify shift yes
+pair_coeff * * 1.0 1.0 1.12246152962189
+
+minimize        1.0e-4 1.0e-6 1000 1000
+
+angle_style none # A flexible fibre
+
+run 400000
+
+unfix 1
+unfix 2
+
+timestep 0.01
+
+fix 1 all nve
+fix 2 all langevin 1.0 1.0 1.0 54321
+
+thermo 100000
+thermo_style custom v_btime temp epair vol c_gyr
+
+run 500000
+
+unfix 1
+unfix 2
+
+timestep 0.01
+
+fix 1 all nve
+fix 2 all langevin 1.0 1.0 1.0 13579
+
+uncompute gyr
+compute gyr all gyration
+compute chromoTemp all temp
+thermo 100000
+thermo_style custom v_btime c_chromoTemp epair vol c_gyr
+
+pair_style lj/cut 1.12246152962189
+pair_modify shift yes
+pair_coeff * * 1.0 1.0 1.12246152962189
+
+run 500000
+
+unfix 1
+unfix 2
+
+write_data data_1_chromosome.out nocoeff
